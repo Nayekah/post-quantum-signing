@@ -1,0 +1,92 @@
+\section{Proposed PQC-Ready Firmware Package Design}
+
+The proposed package format is designed to survive algorithm migration without changing the semantic meaning of the signed data. It separates three concerns: authenticated metadata, firmware payload, and one or more signatures over a canonical manifest digest.
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.92\textwidth]{../images/layout.png}
+\caption{Firmware package layout with authenticated metadata, firmware payload, and signature vector.}
+\label{fig:pkg}
+\end{figure*}
+
+\subsection{Authenticated Fields}
+
+The package should authenticate at least the following fields:
+\begin{enumerate}
+\item format version and magic bytes;
+\item vendor identifier and target device identifier;
+\item firmware version;
+\item minimum bootloader version;
+\item signature policy version;
+\item accepted signature algorithm identifiers;
+\item firmware size and firmware hash;
+\item release timestamp or monotonic release identifier.
+\end{enumerate}
+
+These fields allow the verifier to answer the correct question: not merely ``is there a valid signature,'' but ``is there a valid signature on the correct object under the current trust policy?''
+
+\subsection{Manifest Digest and Signature Vector}
+
+Let $M$ denote the metadata structure and $F$ the firmware binary. The package signs the digest representative
+\begin{equation}
+\mu = H(\text{Encode}(M)\ \|\ H(F)).
+\label{eq:signed_object}
+\end{equation}
+The signature vector is then defined as
+\begin{equation}
+\Sigma = \{(\text{alg}_{i}, \sigma_{i})\}_{i=1}^{k},
+\label{eq:sig_vector}
+\end{equation}
+where each $\text{alg}_{i}$ is an authenticated algorithm identifier and $\sigma_{i}$ is a signature over $\mu$. This representation supports classical-only, PQC-only, and dual-signature packages without changing the manifest grammar.
+
+\subsection{Verification Policy}
+
+The verifier should not interpret $\Sigma$ in isolation. Instead, acceptance should be tied to a policy function that depends on bootloader state and authenticated metadata:
+\begin{equation}
+\mathcal{A}_{\text{req}} = \Pi(v_{\text{boot}}, v_{\text{policy}}, v_{\text{fw}}),
+\label{eq:policy}
+\end{equation}
+where $\Pi$ maps bootloader version, policy version, and firmware version to the required signature set. This abstraction allows several concrete policies:
+\begin{enumerate}
+\item \textit{Classical-only}: accept only RSA or ECDSA.
+\item \textit{PQC-only}: accept only ML-DSA or SLH-DSA.
+\item \textit{Either-valid}: accept either classical or PQC signatures.
+\item \textit{Both-required}: require both a classical and a PQ signature.
+\item \textit{Version-gated}: require different signature sets before and after a migration threshold.
+\end{enumerate}
+
+Among these options, the unrestricted either-valid policy is the weakest during migration because it preserves a classical-only acceptance path indefinitely.
+
+\begin{algorithm}[!t]
+\caption{Downgrade-Resistant Firmware Verification}
+\label{alg:verify}
+\begin{algorithmic}[1]
+\Require Device state $D$, firmware package $P=(M, F, \Sigma)$
+\Ensure Accept or reject
+\If{$M.\texttt{device\_id} \neq D.\texttt{device\_id}$}
+    \State \Return reject
+\EndIf
+\If{$M.\texttt{firmware\_version} < D.\texttt{minimum\_allowed\_version}$}
+    \State \Return reject
+\EndIf
+\If{$M.\texttt{minimum\_bootloader\_version} > D.\texttt{bootloader\_version}$}
+    \State \Return reject
+\EndIf
+\State Compute $\mu \gets H(\text{Encode}(M)\ \|\ H(F))$
+\State Determine required algorithms $\mathcal{A}_{\text{req}} \gets \Pi(D, M)$
+\If{the signature set in $\Sigma$ does not satisfy $\mathcal{A}_{\text{req}}$}
+    \State \Return reject
+\EndIf
+\ForAll{$(\text{alg}, \sigma) \in \Sigma$ required by $\mathcal{A}_{\text{req}}$}
+    \If{Verify$(\text{alg}, \sigma, \mu)$ is false}
+        \State \Return reject
+    \EndIf
+\EndFor
+\State Persist the accepted firmware version
+\State \Return accept
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Why Metadata Must Be Signed}
+
+The algorithm above highlights a crucial point: if the metadata used by $\Pi$ is not authenticated, then the verifier may enforce the wrong policy on otherwise valid cryptographic material. An attacker could lower the declared policy version, alter the claimed target device, or change the minimum bootloader version while leaving the payload untouched. The package format must therefore treat policy metadata as first-class signed input, not as optional transport information.

@@ -1,0 +1,94 @@
+\documentclass[conference]{IEEEtran}
+
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{fontspec}
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{url}
+\usepackage{xurl}
+\usepackage{lettrine}
+\usepackage{float}
+\usepackage{placeins}
+\usepackage{multirow}
+\usepackage[hidelinks,breaklinks=true]{hyperref}
+
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+
+\IfFontExistsTF{Times New Roman}
+  {\setmainfont{Times New Roman}}
+  {\setmainfont{TeX Gyre Termes}}
+
+\renewcommand{\LettrineFontHook}{}
+\raggedbottom
+
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+\fancyfoot[C]{{\footnotesize Makalah II4021 Kriptografi, Semester II Tahun 2025/2026}}
+
+\makeatletter
+\def\section{\@startsection{section}{1}{\z@}{2.8ex plus 1.8ex minus 0.6ex}%
+{1.3ex plus 1ex minus 0ex}{\normalfont\normalsize\centering\scshape}}%
+\def\subsection{\@startsection{subsection}{2}{\z@}{2.1ex plus 1.5ex minus 0.5ex}%
+{1.0ex plus .5ex minus 0ex}{\normalfont\normalsize\itshape}}%
+\def\subsubsection{\@startsection{subsubsection}{3}{\parindent}{0ex plus 0.1ex minus 0.1ex}%
+{0ex}{\normalfont\normalsize\itshape}}%
+\makeatother
+
+\newcommand{\ulineurl}[1]{\url{#1}}
+\newcommand{\figureplaceholder}[3]{%
+\fbox{\parbox[c][#2][c]{#1}{\centering\textbf{#3}\\[0.35em]\footnotesize Placeholder to be replaced by the rendered asset from the \texttt{images/} directory.}}}
+\urlstyle{same}
+
+\begin{document}
+\bstctlcite{PQCBSTControl}
+
+\title{A Comparative Study of ML-DSA and SLH-DSA\\
+for Post-Quantum Firmware Signing\\
+in Secure Firmware Updates}
+
+\author{\IEEEauthorblockN{Nayaka Ghana Subrata -- 13523090\textsuperscript{1,2}}
+\IEEEauthorblockA{\textit{Department of Informatics Engineering} \\
+\textit{School of Electrical Engineering and Informatics} \\
+\textit{Institut Teknologi Bandung, Jl. Ganesha 10, Bandung 40132, Indonesia} \\
+{\normalfont \textsuperscript{1}\underline{13523090@std.stei.itb.ac.id}, \textsuperscript{2}\underline{nayakaghana39@gmail.com}}}
+}
+
+\maketitle
+\thispagestyle{empty}
+\vspace{0.5em}
+
+\begin{abstract}
+\textbf{Firmware signatures anchor secure boot and firmware update trust, yet many deployed systems still rely on RSA or ECDSA, both of which are vulnerable to sufficiently large quantum computers. Replacing a classical signature with a post-quantum algorithm is not enough on its own because firmware deployment also depends on anti-rollback controls, device binding, immutable boot ROM constraints, and migration policies that determine which signatures are acceptable over time. This paper evaluates the suitability of ML-DSA and SLH-DSA for post-quantum firmware signing by combining standards-based parameter analysis with a modular Python prototype that models package metadata, migration policies, and firmware-size-dependent overhead while also executing real PQC signing and verification through local Python bindings. The study compares classical baselines, post-quantum signatures, and dual-signature migration strategies across four firmware sizes from 64 KB to 4 MB. It also simulates classical-only, PQC-only, either-valid, both-required, and version-gated verification policies. The results show that ML-DSA provides the most practical general-purpose path for firmware signing because its signatures are much smaller than those of SLH-DSA while remaining post-quantum secure. SLH-DSA remains valuable as a conservative backup because its security depends only on hash-function assumptions, but its large signatures can impose double-digit percentage overhead on small boot components. The policy analysis further shows that unrestricted either-valid migration can preserve a downgrade path to classical signatures, whereas authenticated version-gated policies and both-required policies prevent that class of failure.}
+\end{abstract}
+
+\begin{IEEEkeywords}
+post-quantum cryptography, firmware signing, secure boot, ML-DSA, SLH-DSA, downgrade resistance, anti-rollback, algorithm agility
+\end{IEEEkeywords}
+
+\input{sections/introduction}
+\input{sections/background}
+\input{sections/problem_statement}
+\input{sections/comparative_analysis}
+\input{sections/package_design}
+\input{sections/implementation}
+\input{sections/evaluation}
+\input{sections/discussion}
+\input{sections/conclusion}
+\input{sections/acknowledgment}
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+\input{sections/github_repository}
+\input{sections/statement}
+
+\end{document}

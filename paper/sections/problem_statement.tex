@@ -1,0 +1,47 @@
+\section{Problem Statement and Threat Model}
+
+The main problem considered in this paper is the following: \textit{how suitable are ML-DSA and SLH-DSA for secure firmware update and secure boot systems that must survive a transition away from RSA or ECDSA?}
+
+This question is broader than ``which signature is fastest.'' A secure answer must account for the constrained nature of bootloaders, immutable verification code, long device lifetimes, and the fact that a transition period may temporarily expose multiple signature options at once.
+
+\subsection{Adversarial Capabilities}
+
+The attacker is assumed to have network or supply-chain access to firmware packages in transit or at rest. In particular, the attacker may:
+\begin{enumerate}
+\item intercept a firmware package before installation;
+\item modify the firmware payload;
+\item modify metadata fields such as version counters, algorithm identifiers, or target device identifiers;
+\item replay an older but once-valid package;
+\item remove one signature from a dual-signed package;
+\item attempt to force a migrated device to accept a classical-only signature.
+\end{enumerate}
+
+The attacker is not assumed to break the core security assumptions of ML-DSA or SLH-DSA, extract the vendor's private signing key, or rewrite immutable root-of-trust code. Those exclusions match the normal cryptographic boundary of a firmware-signing system.
+
+\subsection{Security Requirements}
+
+The firmware update system should satisfy the following requirements:
+\begin{enumerate}
+\item \textit{Authenticity:} only packages signed by the trusted vendor are accepted.
+\item \textit{Integrity:} modifications to firmware or metadata are detected.
+\item \textit{Device binding:} a package for one device class must not install on another device class.
+\item \textit{Anti-rollback:} older vulnerable firmware must not be reinstallable.
+\item \textit{Downgrade resistance:} after migration, the verifier must not be tricked into accepting weaker classical-only signatures.
+\item \textit{Algorithm agility:} the accepted signature set must be updatable through authenticated policy rather than by redesigning the entire package format.
+\end{enumerate}
+
+These conditions can be expressed with a high-level acceptance predicate:
+\begin{equation}
+\begin{aligned}
+\mathsf{Accept}(P,D) = &\ \mathsf{VerifySigSet}(P) \land \mathsf{BindDevice}(P,D) \\
+&\land \mathsf{FreshVersion}(P,D) \land \mathsf{PolicyAllowed}(P,D),
+\end{aligned}
+\label{eq:acceptance}
+\end{equation}
+where $P$ is the candidate firmware package and $D$ is the verifier state of the device.
+
+\subsection{Migration Risk}
+
+The most subtle failure mode is policy downgrade during the transition period. Suppose a device is upgraded to a bootloader that supports both ECDSA and ML-DSA. If the policy states that \textit{either} valid signature is always sufficient, then a classical-only package remains acceptable indefinitely even after the operator intended to migrate away from classical signatures. That creates a downgrade path in which the device's long-term security is bounded by the weaker algorithm family.
+
+By contrast, a version-gated or both-required policy can tie the accepted signature set to authenticated state. In that model, the package does not merely present a signature; it also carries the policy version and minimum bootloader version that determine how the verifier should interpret the signature set. This observation drives both the package design and the evaluation in later sections.

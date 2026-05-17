@@ -1,0 +1,25 @@
+\section{Prototype Implementation}
+
+The implementation under the \texttt{src/} directory combines package modeling, policy evaluation, and real post-quantum signature execution through local Python bindings.
+
+\subsection{Module Structure}
+
+The implementation is divided into the following modules:
+\begin{enumerate}
+\item \texttt{algorithms.py}: stores normalized algorithm profiles, including key sizes, signature sizes, and deployment notes for the classical and post-quantum schemes used in the paper.
+\item \texttt{firmware\_package.py}: defines canonical metadata and firmware-package objects, including deterministic serialization for the authenticated fields.
+\item \texttt{policy.py}: implements five verification policies and the device-state checks needed for downgrade and rollback analysis.
+\item \texttt{pqc\_signatures.py}: provides the actual PQC backend for key generation, signing, verification, and signature attachment to firmware packages.
+\item \texttt{scenarios.py}: defines representative migration scenarios such as legacy classical acceptance, post-migration PQ acceptance, classical-only downgrade attempts, metadata tampering, and rollback.
+\item \texttt{evaluation.py}: computes package-overhead tables, bootloader staging footprints, and policy outcomes.
+\item \texttt{generate\_tables.py}: writes the generated results as CSV files into \texttt{paper/data/} for inclusion and verification.
+\item \texttt{pqc\_demo.py}: runs an end-to-end demonstration that generates ML-DSA and hash-based keys, signs a firmware package, and verifies the resulting signatures.
+\end{enumerate}
+
+\subsection{Design Choices}
+
+The code separates cryptographic facts from policy logic. Standards-based quantities such as public-key size and signature size are stored as immutable algorithm profiles, while concrete PQC operations are isolated behind a backend wrapper.
+
+The implementation uses the \texttt{pqcrypto} package for the concrete PQC backend. The repository-local \texttt{.deps} directory is inserted into the Python import path inside \texttt{pqc\_signatures.py}, after which the backend modules are imported explicitly. In that package, ML-DSA is exposed under the finalized names \texttt{ml\_dsa\_44}, \texttt{ml\_dsa\_65}, and \texttt{ml\_dsa\_87}. The SLH-DSA family is still exposed under the pre-standard SPHINCS+ module names, so the code maps the paper's \texttt{slh\_dsa\_*} identifiers to the corresponding SPHINCS+ SHA-2 simple variants.
+
+The policy scenarios use deterministic firmware payload generation so that manifest hashes and measured outputs remain reproducible across runs.

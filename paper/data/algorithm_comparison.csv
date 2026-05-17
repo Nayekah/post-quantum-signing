@@ -1,0 +1,9 @@
+scheme,family,public_key_bytes,private_key_bytes,signature_bytes,bootloader_staging_bytes,security_basis,verifier_profile
+RSA-PSS-2048,classical,256,1190,256,800,Integer factorization,"mature, moderate code size"
+ECDSA P-256,classical,64,32,64,416,Elliptic-curve discrete logarithm,"small signature, mature embedded support"
+ML-DSA-44,post-quantum,1312,2560,2420,4020,Module-LWE / SelfTargetMSIS,practical default for general-purpose PQ signing
+ML-DSA-65,post-quantum,1952,4032,3309,5549,Module-LWE / SelfTargetMSIS,"higher strength, moderate footprint growth"
+ML-DSA-87,post-quantum,2592,4896,4627,7507,Module-LWE / SelfTargetMSIS,largest ML-DSA profile in the standard
+SLH-DSA-SHA2-128s,post-quantum,32,64,7856,8176,Hash-based stateless hypertrees,"tiny public key, very large signature"
+SLH-DSA-SHA2-192s,post-quantum,48,96,16224,16560,Hash-based stateless hypertrees,larger signature than category-1 style set
+SLH-DSA-SHA2-256s,post-quantum,64,128,29792,30144,Hash-based stateless hypertrees,extreme signature footprint for constrained firmware

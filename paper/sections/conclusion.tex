@@ -1,0 +1,7 @@
+\section{Conclusion}
+
+This paper evaluated the suitability of ML-DSA and SLH-DSA for post-quantum firmware signing and argued that the migration problem is broader than replacing ECDSA or RSA with a new primitive. Firmware trust depends on signed metadata, anti-rollback state, device binding, and verification policy, especially when classical and post-quantum signatures coexist during a transition period.
+
+The standards-based comparison and prototype-driven evaluation show that ML-DSA is the most practical default for general firmware-signing deployments because it provides post-quantum security with substantially smaller signatures than SLH-DSA. SLH-DSA remains important as a conservative backup with different assumptions, but its large signatures can impose substantial overhead on small boot components. The policy simulation further showed that unrestricted either-valid verification leaves a downgrade path to classical-only signatures, whereas version-gated and both-required policies prevent that outcome.
+
+Future work can add device-level benchmarks, real verifier implementations, certificate-chain handling, and measured secure-boot integration. Even without those extensions, the present results already show that a successful post-quantum firmware migration must combine cryptographic modernization with authenticated policy design.

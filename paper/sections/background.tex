@@ -1,0 +1,49 @@
+\section{Background}
+
+\subsection{Firmware Update and Secure Boot}
+
+Firmware update is the process of replacing low-level device software after deployment. Unlike ordinary application updates, a firmware update often changes the software that initializes memory protection, configures device identity, and launches later execution stages. Consequently, a malicious firmware image can compromise the entire platform.
+
+Secure boot addresses this risk by verifying each stage before handing control to the next stage. A root of trust verifies the first mutable component, which then verifies the following stage, and so on. OpenTitan documents this model explicitly: the immutable ROM authenticates the next image, enforces execution permissions, and fails closed if signature verification does not succeed \cite{opentitan_secure_boot}. Firmware signing therefore must be understood as a chain-of-trust mechanism rather than a single isolated signature check.
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.94\textwidth]{../images/boot.png}
+\caption{Secure-boot chain from immutable root of trust to firmware and later execution stages.}
+\label{fig:secureboot}
+\end{figure*}
+
+\subsection{Classical and Post-Quantum Digital Signatures}
+
+Firmware signing today is dominated by classical public-key signatures such as RSA-PSS and ECDSA. FIPS 186-5 specifies ECDSA as part of the Digital Signature Standard, while RSA-PSS remains standardized in PKCS \#1 v2.2 \cite{fips1865,rfc8017}. These schemes are mature, widely implemented, and well supported by secure boot stacks. Their long-term weakness is structural: Shor's algorithm threatens the integer-factorization and discrete-logarithm problems on which they depend.
+
+Post-quantum signature schemes aim to remain secure even if large quantum computers become available. NIST's finalized standards provide two relevant families for this paper:
+\begin{enumerate}
+\item \textit{ML-DSA}, standardized in FIPS 204, is the primary NIST digital-signature standard for general use and is based on module-lattice assumptions \cite{fips204}.
+\item \textit{SLH-DSA}, standardized in FIPS 205, is a stateless hash-based signature scheme that NIST positions as a backup because it relies on a different mathematical approach than ML-DSA \cite{fips205,nist_pqc_release}.
+\end{enumerate}
+
+The two schemes provide different deployment profiles. ML-DSA has larger public keys than ECDSA but much smaller signatures than SLH-DSA. SLH-DSA has very small public keys but very large signatures, trading package size for conservative hash-based assumptions.
+
+\subsection{Authenticated Firmware Metadata}
+
+Firmware update security depends on more than the firmware binary itself. Let $M$ denote the metadata structure and $F$ denote the firmware payload. A robust design signs a canonical digest representative such as
+\begin{equation}
+\mu = H(\text{Encode}(M)\ \|\ H(F)),
+\label{eq:manifest_digest}
+\end{equation}
+where $H$ is a collision-resistant hash function and $\text{Encode}(M)$ is a deterministic serialization of device identifier, firmware version, policy version, and other control fields. Signing only the payload but leaving metadata outside the signature would let an attacker alter version counters or algorithm identifiers without invalidating the package.
+
+\subsection{Anti-Rollback and Algorithm Agility}
+
+A valid signature on an old image is still dangerous if that image contains a known vulnerability. Anti-rollback therefore requires a monotonic counter or trusted version store. If the device has already accepted firmware version $v_{\min}$, a new candidate with version $v$ should satisfy
+\begin{equation}
+v \geq v_{\min}.
+\label{eq:rollback}
+\end{equation}
+
+Algorithm agility introduces a second state variable. The verifier must know not only which firmware versions are acceptable but also which signature algorithms are acceptable at a given migration stage. NIST migration guidance emphasizes that the transition to PQC is a roadmap problem rather than a single flag day \cite{nist_sp180038c,nist_ir8547}. In firmware systems this means accepted algorithms should be coupled to authenticated policy state rather than to unauthenticated update metadata.
+
+\subsection{Related Signature Families}
+
+Stateful hash-based schemes such as LMS and XMSS remain relevant to firmware discussions because NIST recommends them for some long-term applications in SP 800-208 \cite{sp800208}. They are not the main focus of this paper because their signing-state management introduces operational complexity. The OpenTitan experience report makes the same point in practice: stateful signatures can offer attractive size and performance properties, but mishandling signer state risks catastrophic failure \cite{zerorisc_opentitan}. For that reason, this paper concentrates on the stateless NIST PQC signatures while mentioning stateful schemes only as background.

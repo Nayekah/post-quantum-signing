@@ -1,0 +1,7 @@
+scenario,firmware_version,bootloader_version,signed_algorithms,verified_pqc_algorithms,classical_only,pqc_only,either_valid,both_required,version_gated,rationale
+Legacy classical package before migration,7,2,ecdsa_p256,,accept,reject,accept,reject,accept,Classical verification is still the active policy for pre-migration devices.
+PQC-only package after migration,9,3,ml_dsa_44,ml_dsa_44,reject,accept,accept,reject,accept,Post-migration bootloaders should accept authenticated PQ firmware.
+Classical-only package after migration,9,3,ecdsa_p256,,accept,reject,accept,reject,reject,"Either-valid still accepts this package, which models downgrade exposure."
+Dual-signed package after migration,9,3,"ecdsa_p256,ml_dsa_44",ml_dsa_44,accept,accept,accept,accept,accept,Both classical and PQ signatures are present for a controlled transition.
+Tampered algorithm declaration,9,3,ml_dsa_44,ml_dsa_44,reject,reject,reject,reject,reject,"Signed metadata and actual signature set disagree, so the package is rejected."
+Rollback firmware package,6,3,ecdsa_p256,,reject,reject,reject,reject,reject,The version counter blocks reinstallation of older authenticated firmware.

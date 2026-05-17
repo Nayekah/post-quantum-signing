@@ -1,0 +1,50 @@
+\section{Comparative Analysis of Signature Schemes}
+
+\subsection{Classical Baselines}
+
+RSA-PSS and ECDSA remain useful baselines because many firmware ecosystems already implement one of them. RSA-PSS offers conservative engineering maturity but larger signatures than ECDSA. ECDSA P-256 is especially attractive in constrained systems because it combines compact signatures with broad hardware and library support. Its main weakness for this paper is strategic rather than operational: once large-scale quantum computers are practical, the discrete-logarithm basis of ECDSA is no longer sufficient.
+
+\subsection{ML-DSA}
+
+ML-DSA is the natural primary post-quantum candidate because NIST standardized it specifically as the main general-purpose PQ signature standard \cite{nist_pqc_release,fips204}. Its deployment profile is attractive for firmware because its signatures are measured in a few kilobytes rather than tens of kilobytes. The trade-off is that its public keys are substantially larger than those of ECDSA, and embedded implementations may need careful optimization to control code size, stack usage, and constant-time behavior.
+
+For firmware verification, ML-DSA's practical value is that it often shifts the cost from ``impossible to fit'' to ``engineering trade-off.'' A 2.4 KB signature is clearly larger than a 64-byte ECDSA signature, but it remains manageable inside many update packages and secure-boot manifests.
+
+\subsection{SLH-DSA}
+
+SLH-DSA is valuable because it is based on stateless hash-based techniques rather than lattice assumptions \cite{fips205}. That diversity matters in a migration plan: if unexpected weaknesses emerge for lattice signatures, SLH-DSA remains a NIST-standardized fallback path. The price is signature size. Even the small-signature category-1 style parameter set standardized in FIPS 205 requires a 7,856-byte signature, and higher categories grow far larger \cite{fips205}.
+
+This footprint matters most for early boot components. If the firmware object being signed is only tens of kilobytes, then several kilobytes of signature data are no longer negligible. The OpenTitan experience report reaches a similar conclusion for secure boot: hash-based signatures can be a sensible fit when their larger signatures are still manageable for the platform, but the trade-off must be analyzed in the actual firmware context \cite{zerorisc_opentitan}.
+
+\subsection{Hybrid and Dual Signatures}
+
+Migration rarely happens in one step. A common transitional idea is to include both a classical and a post-quantum signature. Dual-signature packaging has two advantages. First, it allows updated verifiers to check a PQ signature while legacy verifiers continue checking a classical signature. Second, it allows phased rollout where signing infrastructure, bootloaders, and manufacturing tools do not all change at once.
+
+The drawback is policy ambiguity. A dual-signed package is not automatically secure if the verifier is willing to accept \textit{either} signature forever. In that case, the package format carries a PQ signature, but the device remains vulnerable to classical-only fallback. The hybrid packaging strategy is therefore only as strong as the verification policy bound to it.
+
+\begin{table*}[!t]
+\caption{Representative Signature Profiles for Firmware-Signing Analysis}
+\label{tab:profiles}
+\centering
+\scriptsize
+\begin{tabular}{p{1.65in}p{0.82in}cccp{1.58in}}
+\toprule
+\textbf{Scheme} & \textbf{Family} & \textbf{Public Key (B)} & \textbf{Signature (B)} & \textbf{Bootloader Staging (B)} & \textbf{Practical Interpretation} \\
+\midrule
+RSA-PSS-2048 & Classical & 256 & 256 & 800 & Mature baseline, but not quantum-safe. \\
+ECDSA P-256 & Classical & 64 & 64 & 416 & Smallest baseline signature and easy embedded fit. \\
+ML-DSA-44 & Post-quantum & 1312 & 2420 & 4020 & Strong practical default for PQ migration. \\
+ML-DSA-65 & Post-quantum & 1952 & 3309 & 5549 & Higher margin with moderate additional footprint. \\
+ML-DSA-87 & Post-quantum & 2592 & 4627 & 7507 & Highest ML-DSA category, but noticeably heavier. \\
+SLH-DSA-SHA2-128s & Post-quantum & 32 & 7856 & 8176 & Conservative backup; signature dominates package growth. \\
+SLH-DSA-SHA2-192s & Post-quantum & 48 & 16224 & 16560 & Conservative but increasingly difficult for small boot stages. \\
+SLH-DSA-SHA2-256s & Post-quantum & 64 & 29792 & 30144 & Very large signature footprint for constrained devices. \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{Interpretation}
+
+Table~\ref{tab:profiles} reveals the central trade-off of this paper. ML-DSA grows both public key size and signature size relative to classical signatures, but it stays within a low-kilobyte regime that is realistic for many firmware packages. SLH-DSA minimizes public-key storage yet shifts the burden into the signature itself. For a verifier that stores public keys in immutable ROM, SLH-DSA's tiny public key is attractive; for a deployment that distributes many small signed boot components, its signature size is the main obstacle.
+
+The comparative conclusion is therefore not that one PQ scheme is globally superior. Rather, ML-DSA is the practical default for most firmware-signing deployments, while SLH-DSA is the conservative hedge that remains valuable when different security assumptions are desired strongly enough to justify its larger signatures.
