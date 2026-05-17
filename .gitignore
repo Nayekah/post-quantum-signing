@@ -1,0 +1,11 @@
+.deps/
+__pycache__/
+*.pyc
+paper/main.aux
+paper/main.bbl
+paper/main.blg
+paper/main.log
+paper/main.pdf
+paper/main.xdv
+images/signature.png
+.tools
